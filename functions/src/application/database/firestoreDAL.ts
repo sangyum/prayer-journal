@@ -2,32 +2,35 @@ import { Logger } from "../logger";
 import { chunk } from "lodash";
 import { DataAccessLayer } from ".";
 
-const FirestoreDAL = (db: FirebaseFirestore.Firestore, logger: Logger) => <Type, >(collectionPath: string): DataAccessLayer => {
+const FirestoreDAL = (db: FirebaseFirestore.Firestore, logger: Logger) => <Type, >(collectionPath: string): DataAccessLayer<Type> => {
     const collectionRef = db.collection(collectionPath);
     
-    const getAll = async (): Promise<any[]> => {
+    const getAll = async (): Promise<Type[]> => {
         try {
             const querySnapshot = await collectionRef.get();
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }))
+            return querySnapshot.docs.map(doc => {
+                const data = doc.data() as any;
+                return {
+                    id: doc.id,
+                    ...data
+                }})
         } catch (error) {
             logger.error(error);
             throw error;
         }
     }
     
-    const getById = async (id: string): Promise<any> => {
+    const getById = async (id: string): Promise<Type | undefined> => {
 
         try {
             const docRef = collectionRef.doc(id);
     
             const doc = await docRef.get();
             if (doc.exists) {
+                const data = doc.data() as any;
                 return {
                     id: doc.id,
-                    ...doc.data()
+                    ...data
                 }
             } else {
                 return undefined;
@@ -38,32 +41,33 @@ const FirestoreDAL = (db: FirebaseFirestore.Firestore, logger: Logger) => <Type,
         }
     }
     
-    const search = async (field: string, operator: string, value: any): Promise<any[]> => {
+    const search = async (field: string, operator: string, value: any): Promise<Type[]> => {
         try {
             const query = collectionRef.where(field, operator as FirebaseFirestore.WhereFilterOp, value);
 
             const querySnapshot = await query.get();
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }))
+            return querySnapshot.docs.map(doc => {
+                    const data = doc.data() as any;
+                    return {
+                    id: doc.id,
+                    ...data
+                }})
         } catch (error) {
             logger.error(error);
             throw error;
         }
     }
     
-    const add = async (document: any): Promise<string> => {
+    const add = async (document: any): Promise<void> => {
         try {
-            const docRef = await collectionRef.add(document);
-            return docRef.id;
+            await collectionRef.add(document);
         } catch (error) {
             logger.error(error);
             throw error;
         }
     }
 
-    const addMultiple = async (documents: any[]): Promise<void> => {
+    const addMultiple = async (documents: Type[]): Promise<void> => {
         try {
             const chunks = chunk(documents, 500);
             const promises = chunks.map(chunk => batchAdd(chunk));
@@ -90,7 +94,7 @@ const FirestoreDAL = (db: FirebaseFirestore.Firestore, logger: Logger) => <Type,
         }
     }
 
-    const update = async (document: FirebaseFirestore.DocumentData): Promise<void> => {
+    const update = async (document: Type): Promise<void> => {
         try {
             const docRef = collectionRef.doc(document.id);
             
@@ -101,7 +105,9 @@ const FirestoreDAL = (db: FirebaseFirestore.Firestore, logger: Logger) => <Type,
         }
     }
 
-    const remove = (document: FirebaseFirestore.DocumentData) => collectionRef.doc(document.id).delete();
+    const remove = async (id: string) => {
+        await collectionRef.doc(id).delete();
+    }
 
     return {
         getAll,

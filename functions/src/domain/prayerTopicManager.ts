@@ -3,7 +3,7 @@ import { PrayerTopic, User } from "./entities";
 import { DataAccessLayer } from "../application/database";
 
 export interface PrayerTopicManagerInterface {
-    get: (id: string) => Promise<PrayerTopic>;
+    get: (id: string) => Promise<PrayerTopic | undefined>;
     getAll: (owner: User) => Promise<PrayerTopic[]>;
     add: (createdBy: User, description: string, tags: string[]) => Promise<PrayerTopic>;
     update: (updatedBy: User, id: string, description: string) => Promise<void>;
@@ -19,7 +19,7 @@ export class PrayerTopicManager implements PrayerTopicManagerInterface {
 
     }
 
-    public async get(id: string): Promise<PrayerTopic> {
+    public async get(id: string): Promise<PrayerTopic | undefined> {
         return await this.dataAccessLayer.getById(id);
     }
 
@@ -46,35 +46,48 @@ export class PrayerTopicManager implements PrayerTopicManagerInterface {
     public async update(updatedBy: User, id: string, description: string): Promise<void> {
         const prayerTopic = await this.get(id);
 
-        await this.dataAccessLayer.update({
-            ...prayerTopic,
-            updatedBy,
-            updatedAt: new Date(),
-            description
-        });
+        if (prayerTopic) {
+            await this.dataAccessLayer.update({
+                ...prayerTopic,
+                updatedBy,
+                updatedAt: new Date(),
+                description
+            });
+        } else {
+            throw Error(`Prayer Topic ${id} not found`)
+        }
     };
 
     public async tags(updatedBy: User, id: string, tags: string[]): Promise<void> {
         const prayerTopic = await this.get(id);
 
-        await this.dataAccessLayer.update({
-            ...prayerTopic,
-            updatedBy,
-            updatedAt: new Date(),
-            tags
-        });
+        if (prayerTopic) {
+            await this.dataAccessLayer.update({
+                ...prayerTopic,
+                updatedBy,
+                updatedAt: new Date(),
+                tags
+            });
+        } else {
+            throw Error(`Prayer Topic ${id} not found`)
+        }
+
     };
 
     public async answer(updatedBy: User, id: string, answer: string): Promise<void> {
         const prayerTopic = await this.get(id);
 
-        await this.dataAccessLayer.update({
-            ...prayerTopic,
-            isAnswered: true,
-            answer,
-            answeredAt: new Date(),
-            updatedBy
-        });
+        if (prayerTopic) {
+            await this.dataAccessLayer.update({
+                ...prayerTopic,
+                isAnswered: true,
+                answer,
+                answeredAt: new Date(),
+                updatedBy
+            });
+        } else {
+            throw Error(`Pryaer Topic ${id} not found`)
+        }
     }
 
 }

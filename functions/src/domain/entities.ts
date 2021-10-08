@@ -8,8 +8,11 @@ export interface Update {
     createdAt: Date;
 }
 
-export interface PrayerTopic {
-    id: string;
+export interface BaseEntity {
+    id: string
+}
+
+export interface PrayerTopic extends BaseEntity {
     description: string;
     updates: Array<Update>;
     tags: string[]
